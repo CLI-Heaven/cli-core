@@ -1,0 +1,58 @@
+/**
+ * Every failure a CLI built on this package, and anything consuming its output, can see. The list
+ * is closed on purpose: an agent branches on `code`, and a new code is a contract change.
+ *
+ * "provider" is whatever the CLI talks to — an HTTP API, a socket, a messenger. The word is
+ * deliberately not "server": a provider that answered with a refusal is not the same as one that
+ * never answered.
+ */
+export const errorCodes = [
+  "validation_error",
+  "configuration_error",
+  "authentication_error",
+  "permission_error",
+  "not_found",
+  "confirmation_required",
+  "rate_limited",
+  "timeout",
+  "network_error",
+  "provider_error",
+  "provider_unavailable",
+  "invalid_response",
+  "outcome_unknown",
+  "cancelled",
+] as const
+
+export type ErrorCode = (typeof errorCodes)[number]
+
+/**
+ * Anything a caller may attach. Everything is optional because these are diagnostics, not a
+ * contract — the contract is `code`.
+ *
+ * `retryable` says whether **this** failure could be retried, not whether the operation is safe to
+ * retry. Those are different questions and conflating them is how a duplicate write happens.
+ */
+export interface CliErrorDetails {
+  readonly status?: number
+  readonly retryable?: boolean
+  readonly attempts?: number
+  readonly requestId?: string
+  readonly runId?: string
+  readonly retryAfterMs?: number
+  readonly operation?: string
+  readonly [key: string]: unknown
+}
+
+export class CliError extends Error {
+  readonly code: ErrorCode
+  readonly details: CliErrorDetails
+
+  constructor(code: ErrorCode, message: string, details: CliErrorDetails = {}) {
+    super(message)
+    this.name = "CliError"
+    this.code = code
+    this.details = details
+  }
+}
+
+export const isCliError = (value: unknown): value is CliError => value instanceof CliError

@@ -1,0 +1,69 @@
+/**
+ * The second runtime, actually executed. A type check proves nothing about a runtime that lacks a
+ * module, and `bun test` cannot run the Vitest suite, so this exercises the real exports with
+ * plain assertions and runs identically under Node and Bun.
+ *
+ * Node needs no counterpart: the Vitest suite already runs every one of these paths under Node.
+ * This exists because Bun cannot run that suite, and "it works under Bun" is a ruling, not a hope.
+ *
+ *   bun run scripts/smoke.ts
+ */
+import { CliError, captureStreams, createRenderer, exitCodeFor, memoryKeyring, realSleep } from "../src/index.js"
+import { fakeClock } from "../src/testing/index.js"
+
+const ESCAPE = String.fromCharCode(27)
+const runtime = typeof (globalThis as { Bun?: unknown }).Bun === "undefined" ? "node" : "bun"
+const failures: string[] = []
+
+const check = (what: string, condition: boolean) => {
+  if (!condition) failures.push(what)
+}
+
+const streams = captureStreams()
+const renderer = createRenderer({ format: "json", color: false, streams })
+renderer.result({ chats: 2 })
+renderer.warn("something worth saying")
+
+check("json output is one value on stdout", streams.stdout.length === 1 && streams.stdout[0] === '{"chats":2}')
+check("diagnostics stay off stdout", streams.stderr.length === 1)
+check("no ANSI reaches stdout", !streams.stdout.join("").includes(ESCAPE))
+
+const pretty = captureStreams()
+createRenderer({ format: "pretty", color: false, streams: pretty }).result([{ id: 1, title: "Family" }])
+check("pretty renders a table", pretty.stdout.join("").includes("Family"))
+
+const error = new CliError("rate_limited", "slow down", { retryAfterMs: 1200 })
+check("error carries its code", error.code === "rate_limited")
+check("exit code is stable", exitCodeFor("cancelled") === 130)
+
+const keyring = memoryKeyring()
+keyring.set("cli-core-smoke", "default", "secret")
+check("keyring round-trips", keyring.get("cli-core-smoke", "default") === "secret")
+
+const time = fakeClock()
+await time.sleep(250, undefined, "retry")
+check("fake clock records without waiting", time.waits.length === 1 && time.clock() === 250)
+
+await realSleep(1)
+
+// Loads the native keyring module without touching the real keychain — no entry is read, written
+// or constructed. Whether a native addon loads at all is exactly the Bun question worth asking.
+const keyringModule = await import("@napi-rs/keyring").then(
+  (module) => typeof (module as { Entry?: unknown }).Entry,
+  () => "unavailable",
+)
+check(`native keyring module loads (saw: ${keyringModule})`, keyringModule === "function")
+
+const aborted = await realSleep(10_000, AbortSignal.abort()).then(
+  () => "resolved",
+  (reason: unknown) => (reason as Error).name,
+)
+check("an aborted sleep rejects with AbortError", aborted === "AbortError")
+
+if (failures.length > 0) {
+  console.error(`cli-core smoke FAILED under ${runtime}:`)
+  for (const failure of failures) console.error(`  - ${failure}`)
+  process.exit(1)
+}
+
+console.log(`cli-core smoke passed under ${runtime}`)
