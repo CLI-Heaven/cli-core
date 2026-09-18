@@ -8,7 +8,25 @@
  *
  *   bun run scripts/smoke.ts
  */
-import { CliError, captureStreams, createRenderer, exitCodeFor, memoryKeyring, realSleep } from "../src/index.js"
+import { mkdtempSync, readFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+import * as v from "valibot"
+import {
+  backoffMs,
+  CliError,
+  Credentials,
+  captureStreams,
+  createFileLogger,
+  createRenderer,
+  DEFAULT_RETRY,
+  exitCodeFor,
+  loadConfigFile,
+  memoryKeyring,
+  realSleep,
+  resolvePaths,
+  saveConfigFile,
+} from "../src/index.js"
 import { fakeClock } from "../src/testing/index.js"
 
 const ESCAPE = String.fromCharCode(27)
@@ -53,6 +71,37 @@ const keyringModule = await import("@napi-rs/keyring").then(
   () => "unavailable",
 )
 check(`native keyring module loads (saw: ${keyringModule})`, keyringModule === "function")
+
+const paths = resolvePaths({ appName: "cli-core-smoke", env: { CLI_CORE_SMOKE_CONFIG_DIR: "/tmp/smoke" } })
+check("paths honour the environment override", paths.config === "/tmp/smoke")
+
+const dir = mkdtempSync(join(tmpdir(), "cli-core-smoke-"))
+const configPath = join(dir, "config.json")
+saveConfigFile(configPath, { version: 1 })
+const Schema = v.object({ version: v.literal(1) })
+check("config round-trips", loadConfigFile(configPath, Schema, () => ({ version: 1 as const })).version === 1)
+
+const credentials = new Credentials({
+  configDir: dir,
+  service: "cli-core-smoke",
+  keyring: memoryKeyring(),
+  env: {},
+  warn: () => {},
+})
+credentials.write("default", "s3cret")
+check("credentials round-trip through the keyring seam", credentials.read("default")?.secret === "s3cret")
+
+// Pino is the dependency most likely to behave differently on a second runtime, and redaction is
+// the one behaviour that must not silently stop working.
+const logPath = join(dir, "events.jsonl")
+const logger = createFileLogger({ path: logPath })
+logger.info({ event: "smoke", token: "t0ken", nested: { password: "hunter2" } })
+await logger.close()
+const logged = readFileSync(logPath, "utf8")
+check("the log file is written", logged.includes("smoke"))
+check("secrets are redacted in the log", !logged.includes("t0ken") && !logged.includes("hunter2"))
+
+check("backoff stays under its ceiling", backoffMs(3, DEFAULT_RETRY, () => 1) <= DEFAULT_RETRY.maxDelayMs)
 
 const aborted = await realSleep(10_000, AbortSignal.abort()).then(
   () => "resolved",
