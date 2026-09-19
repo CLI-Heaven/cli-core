@@ -41,7 +41,8 @@
     "test:watch": "vitest",
     "smoke:bun": "bun run scripts/smoke.ts",
     "prepare": "lefthook install || true",
-    "secrets:scan": "gitleaks git --no-banner --redact ."
+    "secrets:scan": "gitleaks git --no-banner --redact .",
+    "prepublishOnly": "pnpm build"
   },
   "dependencies": {
     "cli-table3": "^0.6.5",
@@ -59,5 +60,8 @@
     "typescript": "^5.9.3",
     "vitest": "^3.2.4",
     "lefthook": "^2.1.8"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
