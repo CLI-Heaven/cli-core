@@ -143,7 +143,7 @@ export class Credentials {
         this.#warned = true
         this.#warn(
           `the OS keyring is unavailable (${error instanceof Error ? error.message : String(error)}); ` +
-            "falling back to a file in the config directory",
+            `storing in ${this.#path()} instead, readable only by you`,
         )
       }
       return undefined

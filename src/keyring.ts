@@ -1,7 +1,16 @@
 import { createRequire } from "node:module"
 
 /**
- * The one seam through which the OS keychain is reached. Injected like `fetch` in core, so
+ * The one seam through which the OS keychain is reached.
+ *
+ * **What backs it, per platform** — `@napi-rs/keyring` 2.1.0, checked 2026-09-19:
+ * macOS uses the Keychain and Windows the Credential Manager, both part of the OS; Linux and the
+ * BSDs use the Secret Service over D-Bus, which a headless machine, a container, WSL or a CI
+ * runner usually does not have. There is nothing to install either way — the package ships
+ * prebuilt binaries for twelve platform triples including musl, so no Rust toolchain and no
+ * node-gyp — but on Linux **the daemon may simply not be there**, which is why every caller must
+ * handle this throwing. `Credentials` does, by warning once and writing a 0600 file instead.
+ * Injected like `fetch` in core, so
  * "no test touched the developer's real keychain" is a property of the code rather than a hope
  * about every test remembering to opt out.
  */

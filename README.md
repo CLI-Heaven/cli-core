@@ -62,6 +62,33 @@ second line of defence, not the first.
 no ambient clock. That is what makes a timeout test finish instantly and a keyring test incapable
 of reaching a real keychain.
 
+## Where secrets actually go, per platform
+
+The keyring is real on every desktop and absent on most servers, so the fallback is not an edge
+case — it is the normal path in CI and containers. Checked against `@napi-rs/keyring` 2.1.0 on
+2026-09-19.
+
+| Platform | Backing store | Needs installing |
+|---|---|---|
+| macOS | Keychain, via the Security framework | nothing — part of the OS |
+| Windows | Credential Manager | nothing — part of the OS |
+| Linux desktop (GNOME, KDE) | Secret Service over D-Bus — `gnome-keyring`, `kwallet` | nothing on a normal desktop; the keyring must be **unlocked** |
+| Linux headless, container, WSL, CI | usually **nothing** — no session bus, no secrets daemon | falls back to a `0600` file, with one warning on stderr |
+| FreeBSD | Secret Service, same as Linux | same |
+
+**No compiler is involved.** The package ships prebuilt binaries for twelve platform triples —
+macOS arm64/x64, Windows x64/ia32/arm64, Linux x64 and arm64 in both glibc and musl, armv7,
+riscv64, FreeBSD x64 — so there is no Rust toolchain and no node-gyp on any mainstream target.
+The Linux binary links only against libc: it speaks D-Bus itself rather than through libsecret,
+so *libsecret is not a requirement* — a running Secret Service provider is.
+
+Two consequences worth designing for rather than discovering:
+
+- **`auto` is the right default and `file` must stay available.** `credentialStorage: "file"` skips
+  the keyring entirely, which is what a container wants and what a locked keyring makes necessary.
+- **A locked Linux keyring can block on a prompt** rather than failing. That is the one case the
+  fallback does not rescue, and a CLI that hangs looks broken rather than locked.
+
 ## Both runtimes
 
 Node 22+ and Bun, and the Bun half is executed rather than assumed:
