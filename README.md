@@ -1,11 +1,11 @@
-# @cli-heaven/cli-core
+# @leemour/cli-core
 
 The parts every command line tool needs and nobody enjoys writing twice: the two output streams,
 a renderer for people and for machines, a closed error model with stable exit codes, the OS
 keyring behind a testable seam, and injectable clocks.
 
 Extracted from [`brazecli`](https://github.com/leemour/brazecli), where each piece earned its
-shape, and shared with [`max-cli`](https://github.com/CLI-Heaven/max-cli).
+shape, and shared with [`max-cli`](https://github.com/leemour/max-cli).
 
 **Status: 0.1.0, not published yet.** Both extraction steps have landed: the files that move
 unchanged, and the ones that needed a parameter threaded through. 73 tests.
@@ -18,7 +18,7 @@ script or an agent depends on, and `captureStreams` exists so a test can prove n
 across.
 
 ```ts
-import { captureStreams, createRenderer } from "@cli-heaven/cli-core"
+import { captureStreams, createRenderer } from "@leemour/cli-core"
 
 const streams = captureStreams()
 createRenderer({ format: "json", color: false, streams }).result({ chats: 2 })
@@ -45,11 +45,11 @@ streams.stderr // []
 | `/testing` | `captureStreams`, `memoryKeyring`, `brokenKeyring`, `fakeClock` |
 
 **Nothing in the root export is HTTP.** Status classification, `Retry-After` parsing and the fetch
-seam live in `@cli-heaven/cli-core/http`, so a CLI that speaks a socket never depends on a stack it
+seam live in `@leemour/cli-core/http`, so a CLI that speaks a socket never depends on a stack it
 does not call:
 
 ```ts
-import { providerWaitMs, statusToCode } from "@cli-heaven/cli-core/http"
+import { providerWaitMs, statusToCode } from "@leemour/cli-core/http"
 ```
 
 **Two traps worth knowing before you use the credential store.** The OS keyring is global: an entry
