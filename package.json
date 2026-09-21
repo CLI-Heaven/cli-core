@@ -1,12 +1,12 @@
 {
-  "name": "@cli-heaven/cli-core",
+  "name": "@leemour/cli-core",
   "version": "0.1.0",
   "description": "The parts every command line tool needs: output modes, terminal rendering, error model, exit codes, credentials, clocks",
   "license": "MIT",
   "author": "Viacheslav Ptsarev",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/CLI-Heaven/cli-core.git"
+    "url": "git+https://github.com/leemour/cli-core.git"
   },
   "type": "module",
   "engines": {
