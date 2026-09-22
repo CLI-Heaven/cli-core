@@ -101,6 +101,19 @@ pnpm typecheck
 pnpm build
 ```
 
+## Releasing
+
+Raise `version` in `package.json` through a pull request, merge it, then on `main`:
+
+```sh
+bin/release
+```
+
+It refuses a dirty tree, a branch other than `main` and a version npm already has, runs every
+check, publishes with the npm token from the keyring (`secret-tool`, service `npm`, account
+`leemour`) without printing it, and tags `v<version>` only once npm shows the new version. The
+token must be allowed to write `@leemour/cli-core`, not only `@leemour/max-cli`.
+
 ## Licence
 
 MIT.
