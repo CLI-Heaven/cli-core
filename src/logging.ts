@@ -34,6 +34,11 @@ export interface FileLoggerOptions {
   base?: Record<string, unknown>
   /** Added to `REDACTED_FIELDS` — the names only this program knows about. */
   redact?: string[]
+  /**
+   * Told once when the file cannot be opened or written; every record after that is dropped.
+   * Without it the failure is silent, so a host that promised a log should say it is gone.
+   */
+  onError?: (error: Error) => void
 }
 
 /**
@@ -46,6 +51,7 @@ export const createFileLogger = ({
   level = "info",
   base = {},
   redact = [],
+  onError = () => {},
 }: FileLoggerOptions = {}): FileLogger => {
   if (!path) return { ...silent, close: async () => {} }
 
@@ -53,6 +59,9 @@ export const createFileLogger = ({
   // `sync: false` drops the tail of the file when a command exits — which is exactly the failure
   // the log exists to explain.
   const file = createWriteStream(path, { flags: "a" })
+  // The open is asynchronous, so a directory removed a moment ago surfaces here as an `error`
+  // event — and one with no listener kills the process the log was only meant to describe.
+  file.on("error", onError)
   const fields = [...new Set([...REDACTED_FIELDS, ...redact])]
   const paths = fields.flatMap((field) => [field, `*.${field}`, `*.*.${field}`])
 

@@ -58,4 +58,24 @@ describe("createFileLogger", () => {
     logger.info({ event: "ignored" })
     await expect(logger.close()).resolves.toBeUndefined()
   })
+
+  it("survives a file it cannot open, and says so once", async () => {
+    const errors: Error[] = []
+    const path = join(mkdtempSync(join(tmpdir(), "cli-core-log-")), "gone", "events.jsonl")
+    const logger = createFileLogger({ path, onError: (error) => errors.push(error) })
+
+    logger.info({ event: "first" })
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    logger.info({ event: "second" })
+
+    await expect(logger.close()).resolves.toBeUndefined()
+    expect(errors.map((error) => (error as NodeJS.ErrnoException).code)).toEqual(["ENOENT"])
+  })
+
+  it("survives it without being told where to report it", async () => {
+    const path = join(mkdtempSync(join(tmpdir(), "cli-core-log-")), "gone", "events.jsonl")
+    const logger = createFileLogger({ path })
+    logger.info({ event: "lost" })
+    await expect(logger.close()).resolves.toBeUndefined()
+  })
 })

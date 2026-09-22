@@ -7,8 +7,8 @@ keyring behind a testable seam, and injectable clocks.
 Extracted from [`brazecli`](https://github.com/leemour/brazecli), where each piece earned its
 shape, and shared with [`max-cli`](https://github.com/leemour/max-cli).
 
-**Status: 0.1.0, not published yet.** Both extraction steps have landed: the files that move
-unchanged, and the ones that needed a parameter threaded through. 73 tests.
+**Status: 0.1.1.** Published on npm, used by `max-cli`. Both extraction steps have landed: the
+files that move unchanged, and the ones that needed a parameter threaded through. 75 tests.
 
 ## The rule this package exists to keep
 
@@ -40,7 +40,7 @@ streams.stderr // []
 | `paths` | `env-paths` for config, state and cache, each overridable by environment variable |
 | `config` | JSON config loading that names the bad field, and an atomic write that locks the directory down |
 | `credentials` | environment → keyring → file, warning once and falling through when the keyring refuses |
-| `logging` | a Pino adapter writing JSON lines with secrets redacted by field name |
+| `logging` | a Pino adapter writing JSON lines with secrets redacted by field name; a file that cannot be written is reported to `onError`, never thrown |
 | `retry` | full-jitter backoff, and the distinction between "no answer came" and "safe to repeat" |
 | `/testing` | `captureStreams`, `memoryKeyring`, `brokenKeyring`, `fakeClock` |
 
@@ -100,6 +100,19 @@ pnpm lint
 pnpm typecheck
 pnpm build
 ```
+
+## Releasing
+
+Raise `version` in `package.json` through a pull request, merge it, then on `main`:
+
+```sh
+bin/release
+```
+
+It refuses a dirty tree, a branch other than `main` and a version npm already has, runs every
+check, publishes with the npm token from the keyring (`secret-tool`, service `npm`, account
+`leemour`) without printing it, and tags `v<version>` only once npm shows the new version. The
+token must be allowed to write `@leemour/cli-core`, not only `@leemour/max-cli`.
 
 ## Licence
 
