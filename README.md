@@ -40,7 +40,7 @@ streams.stderr // []
 | `paths` | `env-paths` for config, state and cache, each overridable by environment variable |
 | `config` | JSON config loading that names the bad field, and an atomic write that locks the directory down |
 | `credentials` | environment → keyring → file, warning once and falling through when the keyring refuses |
-| `logging` | a Pino adapter writing JSON lines with secrets redacted by field name |
+| `logging` | a Pino adapter writing JSON lines with secrets redacted by field name; a file that cannot be written is reported to `onError`, never thrown |
 | `retry` | full-jitter backoff, and the distinction between "no answer came" and "safe to repeat" |
 | `/testing` | `captureStreams`, `memoryKeyring`, `brokenKeyring`, `fakeClock` |
 
