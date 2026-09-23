@@ -37,6 +37,7 @@ token=$(secret-tool lookup service npm account leemour) || { echo "no npm token 
 echo "== publishing $version =="
 NPM_TOKEN="$token" pnpm publish --access public --no-git-checks
 
+echo "== waiting for npm to show $version (up to three minutes) =="
 seen=""
 for _ in $(seq 36); do
   if published; then seen=1; break; fi
