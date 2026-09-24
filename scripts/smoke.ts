@@ -11,7 +11,9 @@
 import { mkdtempSync, readFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { Command } from "commander"
 import * as v from "valibot"
+import { annotate, describeProgram, flatten } from "../src/commands/index.js"
 import {
   backoffMs,
   CliError,
@@ -108,6 +110,14 @@ const aborted = await realSleep(10_000, AbortSignal.abort()).then(
   (reason: unknown) => (reason as Error).name,
 )
 check("an aborted sleep rejects with AbortError", aborted === "AbortError")
+
+const tool = new Command("tool")
+annotate(tool.command("send").argument("<chat>"), { mutates: true })
+const described = flatten(describeProgram(tool))
+check(
+  "the registry sees a command and its label",
+  described[0]?.usage === "tool send <chat>" && described[0]?.mutates === true,
+)
 
 if (failures.length > 0) {
   console.error(`cli-core smoke FAILED under ${runtime}:`)

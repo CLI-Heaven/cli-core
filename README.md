@@ -43,6 +43,7 @@ streams.stderr // []
 | `logging` | a Pino adapter writing JSON lines with secrets redacted by field name; a file that cannot be written is reported to `onError`, never thrown |
 | `retry` | full-jitter backoff, and the distinction between "no answer came" and "safe to repeat" |
 | `/testing` | `captureStreams`, `memoryKeyring`, `brokenKeyring`, `fakeClock` |
+| `/commands` | the command registry: `describeProgram`, `annotate`, `flatten` — see below |
 
 **Nothing in the root export is HTTP.** Status classification, `Retry-After` parsing and the fetch
 seam live in `@leemour/cli-core/http`, so a CLI that speaks a socket never depends on a stack it
@@ -51,6 +52,25 @@ does not call:
 ```ts
 import { providerWaitMs, statusToCode } from "@leemour/cli-core/http"
 ```
+
+**The command registry is `@leemour/cli-core/commands`** — the whole command tree as data, like
+`rails routes`, for an agent to read instead of `--help` and for generated documentation. It walks
+the live [Commander](https://github.com/tj/commander.js) tree, so a command built in a loop from a
+catalog appears exactly like a handwritten one; `annotate` adds what the tree cannot say. Commander
+is a type here, not a runtime dependency — an optional peer, 15 or newer.
+
+```ts
+import { annotate, describeProgram } from "@leemour/cli-core/commands"
+
+annotate(program.command("send"), { mutates: true, examples: ["max messages send 42 hi"] })
+annotate(generated, { origin: "generated", operationId: "campaigns.list" })
+
+describeProgram(program) // [{ path: ["send"], usage, origin, mutates, options: [...], commands: [...] }]
+```
+
+Each option says whether it `takesValue` and, separately, whether it is `mandatory` — not
+Commander's `required`, which means "takes a value when given" — plus its choices, default,
+environment variable, the options it `conflicts` with and the values it `implies`.
 
 **Two traps worth knowing before you use the credential store.** The OS keyring is global: an entry
 is addressed by service and account and knows nothing about which config directory asked for it, so
