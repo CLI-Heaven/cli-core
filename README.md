@@ -45,6 +45,7 @@ streams.stderr // []
 | `/testing` | `captureStreams`, `memoryKeyring`, `brokenKeyring`, `fakeClock` |
 | `/commands` | the command registry: `describeProgram`, `annotate`, `flatten` — see below |
 | `/completion` | shell completion over the registry: `suggest`, `formatSuggestions` — see below |
+| `/update` | keeping an install current: `installerOf`, `updateCommand`, `latestVersion`, `mayNotify` — see below |
 
 **Nothing in the root export is HTTP.** Status classification, `Retry-After` parsing and the fetch
 seam live in `@leemour/cli-core/http`, so a CLI that speaks a socket never depends on a stack it
@@ -97,6 +98,14 @@ second line of defence, not the first.
 **Everything the environment knows is passed in.** No `process.env` reads, no config file paths,
 no ambient clock. That is what makes a timeout test finish instantly and a keyring test incapable
 of reaching a real keychain.
+
+**Keeping an install current is `@leemour/cli-core/update`.** `installerOf(realpath(script))` says
+which package manager put the CLI there — pnpm, npm or bun, measured on real installs — and
+`updateCommand` gives the argv that updates it; a checkout or `npx` gets none. `latestVersion` asks
+npm with a timeout and answers `undefined` on any failure. `mayNotify` says whether a person is at a
+terminal to be told: never in JSON, a pipe, `--quiet`, `CI` or with `NO_UPDATE_NOTIFIER`. Nothing
+here updates or prints by itself — a CLI holding somebody's credentials must not change itself
+unasked.
 
 ## Where secrets actually go, per platform
 

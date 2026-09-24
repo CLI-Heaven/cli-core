@@ -31,6 +31,7 @@ import {
   saveConfigFile,
 } from "../src/index.js"
 import { fakeClock } from "../src/testing/index.js"
+import { installerOf, isNewer } from "../src/update/index.js"
 
 const ESCAPE = String.fromCharCode(27)
 const runtime = typeof (globalThis as { Bun?: unknown }).Bun === "undefined" ? "node" : "bun"
@@ -121,6 +122,11 @@ check(
 )
 
 check("completion suggests a command", suggest({ commands: describeProgram(tool), words: ["se"] })[0]?.value === "send")
+
+check(
+  "update reads an installer and compares versions",
+  installerOf("/x/lib/node_modules/p/dist/bin/p.js") === "npm" && isNewer("0.10.0", "0.9.0"),
+)
 
 if (failures.length > 0) {
   console.error(`cli-core smoke FAILED under ${runtime}:`)
