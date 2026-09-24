@@ -38,6 +38,10 @@
     "./completion": {
       "types": "./dist/completion/index.d.ts",
       "default": "./dist/completion/index.js"
+    },
+    "./update": {
+      "types": "./dist/update/index.d.ts",
+      "default": "./dist/update/index.js"
     }
   },
   "scripts": {
