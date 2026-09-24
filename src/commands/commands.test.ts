@@ -114,3 +114,12 @@ describe("annotate", () => {
     expect(metaOf(new Command("y"))).toEqual({})
   })
 })
+
+describe("hidden commands", () => {
+  it("are not in the registry", () => {
+    const root = new Command("tool")
+    root.command("shown")
+    root.addCommand(new Command("secret"), { hidden: true })
+    expect(describeProgram(root).map(({ name }) => name)).toEqual(["shown"])
+  })
+})

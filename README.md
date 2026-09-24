@@ -44,6 +44,7 @@ streams.stderr // []
 | `retry` | full-jitter backoff, and the distinction between "no answer came" and "safe to repeat" |
 | `/testing` | `captureStreams`, `memoryKeyring`, `brokenKeyring`, `fakeClock` |
 | `/commands` | the command registry: `describeProgram`, `annotate`, `flatten` — see below |
+| `/completion` | shell completion over the registry: `suggest`, `formatSuggestions` — see below |
 
 **Nothing in the root export is HTTP.** Status classification, `Retry-After` parsing and the fetch
 seam live in `@leemour/cli-core/http`, so a CLI that speaks a socket never depends on a stack it
@@ -71,6 +72,21 @@ describeProgram(program) // [{ path: ["send"], usage, origin, mutates, options: 
 Each option says whether it `takesValue` and, separately, whether it is `mandatory` — not
 Commander's `required`, which means "takes a value when given" — plus its choices, default,
 environment variable, the options it `conflicts` with and the values it `implies`.
+
+**Shell completion is `@leemour/cli-core/completion`**, built on the registry. `suggest` takes the
+words typed so far and answers what may come next: a command, an action, an option, one of its
+values, or an argument's values from a source the CLI hands in — a local cache, never the network,
+because a shell calls it on every Tab. `formatSuggestions` writes the answer in the protocol of the
+shell scripts [`@bomb.sh/tab`](https://github.com/bombshell-dev/tab) generates, so the CLI prints
+those scripts with tab and answers `<cli> complete -- <words>` with this; cli-core itself does not
+depend on tab.
+
+```ts
+import { formatSuggestions, suggest } from "@leemour/cli-core/completion"
+
+const words = argv.slice(argv.indexOf("--") + 1)
+streams.data(formatSuggestions(suggest({ commands, globalOptions, words, sources: { arguments: { chat: chatNames } } })))
+```
 
 **Two traps worth knowing before you use the credential store.** The OS keyring is global: an entry
 is addressed by service and account and knows nothing about which config directory asked for it, so

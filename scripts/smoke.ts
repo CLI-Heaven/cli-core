@@ -14,6 +14,7 @@ import { join } from "node:path"
 import { Command } from "commander"
 import * as v from "valibot"
 import { annotate, describeProgram, flatten } from "../src/commands/index.js"
+import { suggest } from "../src/completion/index.js"
 import {
   backoffMs,
   CliError,
@@ -118,6 +119,8 @@ check(
   "the registry sees a command and its label",
   described[0]?.usage === "tool send <chat>" && described[0]?.mutates === true,
 )
+
+check("completion suggests a command", suggest({ commands: describeProgram(tool), words: ["se"] })[0]?.value === "send")
 
 if (failures.length > 0) {
   console.error(`cli-core smoke FAILED under ${runtime}:`)

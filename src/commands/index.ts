@@ -80,7 +80,7 @@ export const annotate = <T extends Command>(command: T, meta: CommandMeta): T =>
 export const metaOf = (command: Command): CommandMeta => labels.get(command) ?? {}
 
 export const describeProgram = (root: Command): CommandInfo[] =>
-  root.commands.map((child) => describe(child, root.name(), []))
+  visible(root).map((child) => describe(child, root.name(), []))
 
 export const describeOptions = (command: Command): OptionInfo[] =>
   command.options.filter((option) => !option.hidden).map(describeOption)
@@ -113,9 +113,13 @@ const describe = (command: Command, cli: string, parents: readonly string[]): Co
     ...meta,
     arguments: args,
     options,
-    commands: command.commands.map((child) => describe(child, cli, path)),
+    commands: visible(command).map((child) => describe(child, cli, path)),
   }
 }
+
+// `addCommand(command, { hidden: true })` sets only this; Commander has no public getter for it.
+const visible = (command: Command): Command[] =>
+  command.commands.filter((child) => !(child as Command & { _hidden?: boolean })._hidden)
 
 const describeArgument = (argument: Argument): ArgumentInfo => ({
   name: argument.name(),

@@ -34,6 +34,10 @@
     "./commands": {
       "types": "./dist/commands/index.d.ts",
       "default": "./dist/commands/index.js"
+    },
+    "./completion": {
+      "types": "./dist/completion/index.d.ts",
+      "default": "./dist/completion/index.js"
     }
   },
   "scripts": {
