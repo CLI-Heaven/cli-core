@@ -7,7 +7,7 @@ keyring behind a testable seam, and injectable clocks.
 Extracted from [`brazecli`](https://github.com/leemour/brazecli), where each piece earned its
 shape, and shared with [`max-cli`](https://github.com/leemour/max-cli).
 
-**Status: 0.3.0.** Published on npm, used by `max-cli`. Both extraction steps have landed: the
+**Status: 0.4.0.** Published on npm, used by `max-cli`. Both extraction steps have landed: the
 files that move unchanged, and the ones that needed a parameter threaded through. 75 tests.
 
 ## The rule this package exists to keep
