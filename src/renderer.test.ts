@@ -114,3 +114,31 @@ describe("pretty", () => {
     expect(streams.stdout.join("")).not.toMatch(ANSI)
   })
 })
+
+describe("text from elsewhere, shown to a person", () => {
+  const HOSTILE = "Fam\u001b[2K\u001b[1Gily"
+
+  it("reaches a table, a field list and a diagnostic with its control characters made visible", () => {
+    const streams = captureStreams()
+    const renderer = createRenderer({ format: "pretty", color: false, streams })
+    renderer.result([{ title: HOSTILE }])
+    renderer.result({ [HOSTILE]: HOSTILE })
+    renderer.warn(HOSTILE)
+
+    const shown = [...streams.stdout, ...streams.stderr].join("\n")
+    expect(shown).not.toContain("\u001b")
+    expect(shown).toContain("Fam\\x1b[2K\\x1b[1Gily")
+  })
+
+  it("is escaped in a diagnostic even when stdout is JSON, because stderr is still read by a person", () => {
+    const streams = captureStreams()
+    createRenderer({ format: "json", color: false, streams }).warn(HOSTILE)
+    expect(streams.stderr.join("")).not.toContain("\u001b")
+  })
+
+  it("leaves JSON on stdout byte for byte: JSON.stringify already escapes it, and those bytes are a contract", () => {
+    const streams = captureStreams()
+    createRenderer({ format: "json", color: false, streams }).result({ title: HOSTILE })
+    expect(streams.stdout[0]).toBe(JSON.stringify({ title: HOSTILE }))
+  })
+})

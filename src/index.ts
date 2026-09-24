@@ -16,6 +16,7 @@ export {
   type RenderFormat,
 } from "./renderer.js"
 export { backoffMs, DEFAULT_RETRY, isTransportFailure, type RetryConfig } from "./retry.js"
+export { visibleControls } from "./sanitize.js"
 export { captureStreams, processStreams, type Streams } from "./streams.js"
 export {
   abortError,
