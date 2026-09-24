@@ -30,6 +30,10 @@
     "./http": {
       "types": "./dist/http/index.d.ts",
       "default": "./dist/http/index.js"
+    },
+    "./commands": {
+      "types": "./dist/commands/index.d.ts",
+      "default": "./dist/commands/index.js"
     }
   },
   "scripts": {
@@ -46,8 +50,8 @@
   },
   "dependencies": {
     "cli-table3": "^0.6.5",
-    "picocolors": "^1.1.1",
     "env-paths": "^4.0.0",
+    "picocolors": "^1.1.1",
     "pino": "^10.3.1",
     "valibot": "^1.5.0"
   },
@@ -57,11 +61,20 @@
   "devDependencies": {
     "@biomejs/biome": "^2.3.14",
     "@types/node": "^22.10.2",
+    "commander": "^15.0.0",
+    "lefthook": "^2.1.8",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4",
-    "lefthook": "^2.1.8"
+    "vitest": "^3.2.4"
   },
   "publishConfig": {
     "access": "public"
+  },
+  "peerDependencies": {
+    "commander": ">=15"
+  },
+  "peerDependenciesMeta": {
+    "commander": {
+      "optional": true
+    }
   }
 }
