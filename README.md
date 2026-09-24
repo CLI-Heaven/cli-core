@@ -109,10 +109,18 @@ Raise `version` in `package.json` through a pull request, merge it, then on `mai
 bin/release
 ```
 
-It refuses a dirty tree, a branch other than `main` and a version npm already has, runs every
-check, publishes with the npm token from the keyring (`secret-tool`, service `npm`, account
-`leemour`) without printing it, and tags `v<version>` only once npm shows the new version. The
-token must be allowed to write `@leemour/cli-core`, not only `@leemour/max-cli`.
+It refuses a dirty tree, a branch other than `main`, a `main` that is not pushed and a version npm
+already has, then starts [`release.yml`](.github/workflows/release.yml) and follows it. The workflow
+runs every check, publishes through npm's
+[trusted publishing](https://docs.npmjs.com/trusted-publishers/) — no npm token in GitHub, and npm
+attaches provenance — and tags `v<version>` only once npm shows the new version.
+
+npm trusts the workflow **by file name**: the package's Trusted Publisher settings on npmjs.com name
+`leemour` / `cli-core` / `release.yml`. Rename the file and publishing stops until they are updated.
+
+`bin/release --local` is the fallback: it runs the same checks here and publishes with the npm token
+from the keyring (`secret-tool`, service `npm`, account `leemour`) without printing it. The token
+must be allowed to write `@leemour/cli-core`, not only `@leemour/max-cli`.
 
 ## Licence
 
