@@ -10,7 +10,10 @@ import {
   latestVersion,
   mayNotify,
   readUpdateState,
+  runUpdate,
+  spawnPlan,
   updateCommand,
+  updateNotice,
   writeUpdateState,
 } from "./index.js"
 
@@ -140,5 +143,94 @@ describe("the check's state", () => {
     writeUpdateState(path, { checkedAt: 1 })
     writeFileSync(path, "{ not json")
     expect(readUpdateState(path)).toBeUndefined()
+  })
+})
+
+describe("spawnPlan and runUpdate", () => {
+  it("passes the words as arguments, and through a shell only on Windows", () => {
+    expect(spawnPlan(["npm", "install", "-g", "x@latest"], "linux")).toEqual({
+      file: "npm",
+      args: ["install", "-g", "x@latest"],
+      shell: false,
+    })
+    expect(spawnPlan(["npm", "install", "-g", "x@latest"], "win32")).toEqual({
+      file: "npm install -g x@latest",
+      args: [],
+      shell: true,
+    })
+  })
+
+  it("answers the package manager's exit code", () => {
+    expect(runUpdate([process.execPath, "-e", "process.exit(3)"])).toBe(3)
+  })
+
+  it("throws, naming it, when the package manager cannot be started", () => {
+    expect(() => runUpdate(["no-such-package-manager-anywhere"])).toThrow(/no-such-package-manager-anywhere/)
+  })
+})
+
+describe("updateNotice", () => {
+  const npm =
+    (version: string | undefined, calls: string[] = []) =>
+    async (url: string | URL | Request) => {
+      calls.push(String(url))
+      if (version === undefined) throw new Error("offline")
+      return new Response(JSON.stringify({ version }))
+    }
+
+  const request = (overrides: Partial<Parameters<typeof updateNotice>[0]> = {}) => ({
+    argv: ["campaigns", "list"],
+    packageName: "@leemour/tool",
+    command: "tool",
+    version: "1.0.0",
+    statePath: join(mkdtempSync(join(tmpdir(), "cli-core-notice-")), "update-check.json"),
+    fetch: npm("1.1.0"),
+    format: "pretty",
+    stderrIsTTY: true,
+    quiet: false,
+    enabled: true,
+    installer: "npm" as const,
+    env: {},
+    ...overrides,
+  })
+
+  it("tells a person a newer version is out, and how to get it", async () => {
+    expect(await updateNotice(request())).toBe("tool 1.1.0 is out — you have 1.0.0. `tool update` installs it.")
+  })
+
+  it.each([
+    ["after a profile name", ["prod", "update"]],
+    ["after an option's value", ["--profile", "prod", "update"]],
+    ["during completion", ["complete", "--", "camp"]],
+  ])("says nothing about update or complete, wherever the word is — %s", async (_name, argv) => {
+    const calls: string[] = []
+
+    expect(await updateNotice(request({ argv, fetch: npm("1.1.0", calls) }))).toBeUndefined()
+    expect(calls).toEqual([])
+  })
+
+  it("says nothing when npm cannot be reached, or has nothing newer", async () => {
+    expect(await updateNotice(request({ fetch: npm(undefined) }))).toBeUndefined()
+    expect(await updateNotice(request({ fetch: npm("1.0.0") }))).toBeUndefined()
+  })
+
+  it("asks npm at most once a day, and again the day after", async () => {
+    const calls: string[] = []
+    const statePath = request().statePath
+    const at = (now: number) => request({ statePath, fetch: npm("1.1.0", calls), now: () => now })
+
+    await updateNotice(at(1_000))
+    await updateNotice(at(1_000 + CHECK_EVERY_MS - 1))
+    expect(calls).toHaveLength(1)
+
+    await updateNotice(at(1_000 + CHECK_EVERY_MS))
+    expect(calls).toHaveLength(2)
+  })
+
+  it("never reaches npm for someone who would not be told", async () => {
+    const calls: string[] = []
+
+    expect(await updateNotice(request({ format: "json", fetch: npm("1.1.0", calls) }))).toBeUndefined()
+    expect(calls).toEqual([])
   })
 })
