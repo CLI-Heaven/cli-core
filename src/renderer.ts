@@ -1,4 +1,5 @@
 import { renderPretty } from "./pretty.js"
+import { visibleControls } from "./sanitize.js"
 import { processStreams, type Streams } from "./streams.js"
 
 /**
@@ -34,13 +35,16 @@ export interface RendererOptions {
  * output still gives you the content and not the commentary.
  */
 export const createRenderer = ({ format, color, streams = processStreams }: RendererOptions): Renderer => {
-  const mark = (symbol: string, message: string) => `${symbol} ${message}`
+  // Sanitised in every mode, not just `pretty`: a diagnostic goes to stderr, and stderr is read
+  // by a person whatever stdout was asked to be. The message is often the other side's own words.
+  const mark = (symbol: string, message: string) =>
+    format === "pretty" ? `${symbol} ${visibleControls(message)}` : visibleControls(message)
 
   const diagnostics = {
-    note: (message: string) => streams.diagnostic(format === "pretty" ? mark("·", message) : message),
-    success: (message: string) => streams.diagnostic(format === "pretty" ? mark("✓", message) : message),
-    warn: (message: string) => streams.diagnostic(format === "pretty" ? mark("!", message) : message),
-    failure: (message: string) => streams.diagnostic(format === "pretty" ? mark("✗", message) : message),
+    note: (message: string) => streams.diagnostic(mark("·", message)),
+    success: (message: string) => streams.diagnostic(mark("✓", message)),
+    warn: (message: string) => streams.diagnostic(mark("!", message)),
+    failure: (message: string) => streams.diagnostic(mark("✗", message)),
   }
 
   if (format === "jsonl") {
