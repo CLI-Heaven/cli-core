@@ -32,7 +32,7 @@ streams.stderr // []
 | | |
 |---|---|
 | `streams` | the stdout/stderr split, and the capture used to test it |
-| `renderer` · `pretty` | `pretty` / `json` / `jsonl`; tables for lists, labelled lines for objects |
+| `renderer` · `pretty` | `pretty` / `json` / `jsonl`; tables for lists, labelled lines for objects; `quiet` keeps only failures on stderr |
 | `errors` · `exit-codes` | 14 closed error codes, one exit number each, so a script can branch on `$?` |
 | `keyring` | `KeyringStore` with the system, memory and deliberately-broken implementations |
 | `time` | monotonic and wall clocks, and the one sleep that both timeouts and backoff use |
@@ -45,7 +45,7 @@ streams.stderr // []
 | `/testing` | `captureStreams`, `memoryKeyring`, `brokenKeyring`, `fakeClock` |
 | `/commands` | the command registry: `describeProgram`, `annotate`, `flatten` — see below |
 | `/completion` | shell completion over the registry: `suggest`, `formatSuggestions` — see below |
-| `/update` | keeping an install current: `installerOf`, `updateCommand`, `latestVersion`, `mayNotify` — see below |
+| `/update` | keeping an install current: `installerOf`, `updateCommand`, `latestVersion`, `mayNotify`, `updateNotice`, `runUpdate` — see below |
 
 **Nothing in the root export is HTTP.** Status classification, `Retry-After` parsing and the fetch
 seam live in `@leemour/cli-core/http`, so a CLI that speaks a socket never depends on a stack it
@@ -103,9 +103,12 @@ of reaching a real keychain.
 which package manager put the CLI there — pnpm, npm or bun, measured on real installs — and
 `updateCommand` gives the argv that updates it; a checkout or `npx` gets none. `latestVersion` asks
 npm with a timeout and answers `undefined` on any failure. `mayNotify` says whether a person is at a
-terminal to be told: never in JSON, a pipe, `--quiet`, `CI` or with `NO_UPDATE_NOTIFIER`. Nothing
-here updates or prints by itself — a CLI holding somebody's credentials must not change itself
-unasked.
+terminal to be told: never in JSON, a pipe, `--quiet`, `CI` or with `NO_UPDATE_NOTIFIER`.
+`updateNotice` is the whole daily line: it stays silent when `update` or `complete` is anywhere on
+the command line, asks npm at most once a day through a state file the CLI names, and returns the
+sentence or `undefined` — it never throws. `runUpdate` starts the package manager with its output on
+stderr (`spawnPlan` is the Windows `.cmd` rule). Nothing here updates or prints by itself — a CLI
+holding somebody's credentials must not change itself unasked.
 
 ## Where secrets actually go, per platform
 

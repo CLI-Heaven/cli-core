@@ -142,3 +142,19 @@ describe("text from elsewhere, shown to a person", () => {
     expect(streams.stdout[0]).toBe(JSON.stringify({ title: HOSTILE }))
   })
 })
+
+describe("quiet", () => {
+  it("drops notes, successes and warnings, and keeps the failure and the result", () => {
+    const streams = captureStreams()
+    const renderer = createRenderer({ format: "pretty", color: false, streams, quiet: true })
+
+    renderer.note("n")
+    renderer.success("s")
+    renderer.warn("w")
+    renderer.failure("f")
+    renderer.result({ a: 1 })
+
+    expect(streams.stderr).toEqual(["✗ f"])
+    expect(streams.stdout).not.toEqual([])
+  })
+})

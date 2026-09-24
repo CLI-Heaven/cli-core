@@ -25,6 +25,8 @@ export interface RendererOptions {
   format: RenderFormat
   color: boolean
   streams?: Streams
+  /** Drops `note`, `success` and `warn`. A failure is still said, and the result is untouched. */
+  quiet?: boolean
 }
 
 /**
@@ -34,16 +36,25 @@ export interface RendererOptions {
  * by construction instead of by a mode check somebody can forget. It also means piping human
  * output still gives you the content and not the commentary.
  */
-export const createRenderer = ({ format, color, streams = processStreams }: RendererOptions): Renderer => {
+export const createRenderer = ({
+  format,
+  color,
+  streams = processStreams,
+  quiet = false,
+}: RendererOptions): Renderer => {
   // Sanitised in every mode, not just `pretty`: a diagnostic goes to stderr, and stderr is read
   // by a person whatever stdout was asked to be. The message is often the other side's own words.
   const mark = (symbol: string, message: string) =>
     format === "pretty" ? `${symbol} ${visibleControls(message)}` : visibleControls(message)
 
+  const say = (symbol: string) => (message: string) => {
+    if (!quiet) streams.diagnostic(mark(symbol, message))
+  }
+
   const diagnostics = {
-    note: (message: string) => streams.diagnostic(mark("·", message)),
-    success: (message: string) => streams.diagnostic(mark("✓", message)),
-    warn: (message: string) => streams.diagnostic(mark("!", message)),
+    note: say("·"),
+    success: say("✓"),
+    warn: say("!"),
     failure: (message: string) => streams.diagnostic(mark("✗", message)),
   }
 
