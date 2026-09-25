@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { visibleControls } from "./sanitize.js"
+import { singleLine, visibleControls } from "./sanitize.js"
 
 // The control characters are the point: these assert that none of them survive into a terminal.
 // biome-ignore lint/suspicious/noControlCharactersInRegex: matching them is the test
@@ -12,6 +12,10 @@ describe("visibleControls", () => {
     ["a lone carriage return", "first\rsecond", "first\\x0dsecond"],
     ["a null byte", "a\u0000b", "a\\x00b"],
     ["an 8-bit CSI", "a\u009bb", "a\\x9bb"],
+    ["a right-to-left override", "invoice\u202efdp.exe", "invoice\\u202efdp.exe"],
+    ["a directional isolate", "a\u2067b\u2069", "a\\u2067b\\u2069"],
+    ["a zero-width space", "pay\u200bpal", "pay\\u200bpal"],
+    ["a right-to-left mark", "a\u200fb", "a\\u200fb"],
   ])("makes %s visible", (_name, input, expected) => {
     const output = visibleControls(input)
 
@@ -25,6 +29,8 @@ describe("visibleControls", () => {
     ["an accent", "café"],
     ["han characters", "活动"],
     ["an emoji", "🎯 launch"],
+    ["an emoji built with the zero-width joiner", "\u{1f468}\u200d\u{1f469}\u200d\u{1f467} family"],
+    ["Persian with a zero-width non-joiner", "می\u200cخواهم"],
     ["an empty string", ""],
   ])("leaves %s exactly as it was", (_name, input) => {
     expect(visibleControls(input)).toBe(input)
@@ -38,5 +44,21 @@ describe("visibleControls", () => {
       "a\\x1bb",
       "a\\x1bb",
     ])
+  })
+})
+
+describe("singleLine", () => {
+  it.each([
+    ["a newline", "Alice\n12:34  you", "Alice\\x0a12:34  you"],
+    ["a tab", "one\ttwo", "one\\x09two"],
+    ["a carriage return", "one\rtwo", "one\\x0dtwo"],
+    ["a line separator", "one\u2028two", "one\\u2028two"],
+    ["an escape sequence", "a\u001b[2Kb", "a\\x1b[2Kb"],
+  ])("keeps %s from breaking the line", (_name, input, expected) => {
+    expect(singleLine(input)).toBe(expected)
+  })
+
+  it("leaves ordinary text alone", () => {
+    expect(singleLine("Мама Иванова 🎯")).toBe("Мама Иванова 🎯")
   })
 })
