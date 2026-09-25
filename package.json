@@ -1,6 +1,6 @@
 {
   "name": "@leemour/cli-core",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "The parts every command line tool needs: output modes, terminal rendering, error model, exit codes, credentials, clocks",
   "license": "MIT",
   "author": "Viacheslav Ptsarev",
@@ -64,7 +64,7 @@
     "valibot": "^1.5.0"
   },
   "optionalDependencies": {
-    "@napi-rs/keyring": "^2.0.0"
+    "@napi-rs/keyring": "2.1.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.14",

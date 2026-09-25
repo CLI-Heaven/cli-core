@@ -11,15 +11,34 @@
  */
 
 /**
+ * C0 minus tab and newline, DEL, and C1 — which xterm honours as escapes in its 8-bit form. Then
+ * the direction overrides and isolates, which reorder what follows them (`invoice\u202efdp.exe`
+ * reads as a PDF), and the invisible zero-width space and direction marks.
+ *
+ * U+200C and U+200D stay: Persian and Indic text need the non-joiner, and every multi-person emoji
+ * is built with the joiner.
+ */
+// biome-ignore lint/suspicious/noControlCharactersInRegex: matching them is the whole point
+const CONTROL = /[\u0000-\u0008\u000B-\u001F\u007F-\u009F\u200B\u200E\u200F\u202A-\u202E\u2066-\u2069]/g
+
+const LINE_BREAKS = /[\t\n\u2028\u2029]/g
+
+const escaped = (c: string): string => {
+  const code = c.charCodeAt(0)
+  return code > 0xff ? `\\u${code.toString(16).padStart(4, "0")}` : `\\x${code.toString(16).padStart(2, "0")}`
+}
+
+/**
  * Control characters become visible rather than disappearing. A reader has to know the value
  * contained something strange; an audit that silently drops bytes is worse than one that shows
  * them.
  *
  * `\t` and `\n` survive, because a table and a multi-line field are built out of them.
  */
-/** C0 minus tab and newline, DEL, and C1 — which xterm honours as escapes in its 8-bit form. */
-// biome-ignore lint/suspicious/noControlCharactersInRegex: matching them is the whole point
-const CONTROL = /[\u0000-\u0008\u000B-\u001F\u007F-\u009F]/g
+export const visibleControls = (text: string): string => text.replace(CONTROL, escaped)
 
-export const visibleControls = (text: string): string =>
-  text.replace(CONTROL, (c) => `\\x${c.charCodeAt(0).toString(16).padStart(2, "0")}`)
+/**
+ * For a value that must stay on one line: a name, a title, a file name, a URL. A newline in a
+ * sender's name would otherwise print as a line of its own, indistinguishable from real output.
+ */
+export const singleLine = (text: string): string => visibleControls(text).replace(LINE_BREAKS, escaped)

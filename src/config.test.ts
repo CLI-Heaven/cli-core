@@ -1,8 +1,8 @@
-import { mkdtempSync, readFileSync, statSync } from "node:fs"
+import { lstatSync, mkdtempSync, readFileSync, statSync, symlinkSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import * as v from "valibot"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import { loadConfigFile, saveConfigFile, writeSecurely } from "./config.js"
 
 const Schema = v.object({ version: v.literal(1), profiles: v.optional(v.record(v.string(), v.object({}))) })
@@ -45,6 +45,20 @@ describe("writeSecurely", () => {
     const path = join(dir(), "nested", "credentials.json")
     writeSecurely(path, "{}", 0o600)
     expect(statSync(join(path, "..")).mode & 0o777).toBe(0o700)
+  })
+
+  it("does not write through a symlink planted at a predictable temporary name", () => {
+    const base = dir()
+    const target = join(base, "elsewhere")
+    writeFileSync(target, "untouched")
+    vi.spyOn(Date, "now").mockReturnValue(1)
+    symlinkSync(target, join(base, `.1-${process.pid}.tmp`))
+
+    writeSecurely(join(base, "config.json"), "{}", 0o600)
+    vi.restoreAllMocks()
+
+    expect(readFileSync(target, "utf8")).toBe("untouched")
+    expect(lstatSync(join(base, "config.json")).isFile()).toBe(true)
   })
 
   it("leaves no temporary file behind", () => {

@@ -1,4 +1,5 @@
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs"
+import { randomBytes } from "node:crypto"
+import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 import * as v from "valibot"
 
@@ -14,10 +15,17 @@ export const writeSecurely = (path: string, contents: string, mode: number): voi
   const dir = dirname(path)
   mkdirSync(dir, { recursive: true, mode: 0o700 })
 
-  const temp = join(dir, `.${Date.now()}-${process.pid}.tmp`)
-  writeFileSync(temp, contents, { mode })
-  // A rename within one directory is atomic on every platform we target.
-  renameSync(temp, path)
+  // An unguessable name opened with `wx` fails on anything already there, a planted symlink
+  // included, instead of writing through it.
+  const temp = join(dir, `.${randomBytes(8).toString("hex")}.tmp`)
+  try {
+    writeFileSync(temp, contents, { mode, flag: "wx" })
+    // A rename within one directory is atomic on every platform we target.
+    renameSync(temp, path)
+  } catch (error) {
+    rmSync(temp, { force: true })
+    throw error
+  }
 }
 
 /**
